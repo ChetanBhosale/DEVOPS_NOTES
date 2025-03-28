@@ -1,0 +1,96 @@
+Here's a refined version of your CI/CD deployment notes with better structure and clarity:  
+
+---
+
+# **CI/CD Deployment Steps**  
+
+## **1. Create the Project**  
+- Develop the application that needs to be deployed on the internet.  
+
+## **2. Set Up the Servers**  
+- Configure **staging**, **production**, and **development** environments.  
+
+## **3. Manage Code Deployment**  
+- Merge the **development branch** into **production** for deployment.  
+
+## **4. Set Up the CI/CD Pipeline**  
+- Configure a **CI/CD pipeline** to automate deployment to the server using GitHub Actions.  
+
+## **5. Generate SSH Keys for Secure Access**  
+- Run the following command to create an **SSH key pair**:  
+  ```bash
+  ssh-keygen -t ed25519 -C "your-email@example.com"
+  ```
+- This will generate two files:  
+  - `id_test` → **Private Key**  
+  - `id_test.pub` → **Public Key**  
+
+## **6. Add the Public Key to the Server**  
+- Copy the **public key (`id_test.pub`)** to your server or AWS EC2 instance to enable secure authentication.  
+- Add the **private key** to **GitHub Secrets**:  
+  - Go to **Repository Settings → Secrets and Variables → Actions**  
+  - Create a new **secret** named `SSH_PRIVATE_KEY`  
+  - Paste the **private key (`id_test`)**  
+
+---
+
+# **GitHub Actions Workflow for CI/CD**  
+
+### **Folder Structure**  
+Create the following files in `.github/workflows/`:  
+- `cd_staging.yml` → For **staging deployment**  
+- `cd_prod.yml` → For **production deployment**  
+
+---
+
+### **Staging Deployment (GitHub Actions)**  
+Create `.github/workflows/cd_staging.yml`:  
+
+```yaml
+name: Deployment to Staging
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  redeploy_everything:
+    runs-on: ubuntu-latest    
+    name: Deploy Everything to the Staging Cluster
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: SSH into Server and Deploy
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/ssh_key
+          chmod 600 ~/ssh_key
+          mkdir -p ~/.ssh
+          
+          ssh -i ~/ssh_key -o StrictHostKeyChecking=no root@64.227.147.124 << 'EOF'
+            cd /path/to/your_backend_folder
+            git pull origin main
+            pnpm install
+            pnpm run build
+            pm2 restart all
+          EOF
+```
+
+---
+
+### **Key Notes:**  
+1. **GitHub Secrets**  
+   - The **SSH private key** is stored in **GitHub Secrets (`SSH_PRIVATE_KEY`)**  
+   - It is used to authenticate the deployment process securely.  
+
+2. **Commands Breakdown**  
+   - `git pull origin main` → Fetch the latest code from GitHub.  
+   - `pnpm install` → Install dependencies.  
+   - `pnpm run build` → Build the project.  
+   - `pm2 restart all` → Restart the running application.  
+
+---
+
+This structure makes your CI/CD process clean, automated, and easy to maintain. 🚀
